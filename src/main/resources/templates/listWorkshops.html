@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Workshop Registration - Choose a Workshop</title>
+    <style type="text/css">
+        body {
+            width: 900px;
+            margin: auto;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-top: 20px;
+        }
+        .workshop-option {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .workshop-option:hover {
+            background-color: #f5f5f5;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+        table, td, th {
+            border: 1px solid #333;
+        }
+        th {
+            background-color: #2E86C1;
+            color: white;
+            padding: 8px;
+        }
+        td {
+            padding: 6px;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .inline-form {
+            margin: 0;
+            display: inline;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Welcome to our Workshop Registration App</h1>
+</header>
+<main>
+    <!-- error message coming from ?errorMessage=... -->
+    <p class="error" th:if="${errorMessage != null}" th:text="${errorMessage}"></p>
+
+    <!-- 6.2 search form, now pointing at the controller -->
+    <form action="/workshops" method="GET">
+        <h2>Search workshops:</h2>
+        <label>Title or category contains:</label>
+        <input type="text" name="text">
+        <label>Max price:</label>
+        <input type="number" name="maxPrice" min="0" step="0.01">
+        <input type="submit" value="Search">
+    </form>
+
+    <!-- 6.2 edit / delete buttons live OUTSIDE the
+         registration form, because HTML does not allow nested forms -->
+    <h2>All workshops:</h2>
+    <a href="/workshops/workshop-form">
+        <button type="button">Add new workshop</button>
+    </a>
+    <table>
+        <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Free seats</th>
+            <th>Instructor</th>
+            <th>Actions</th>
+        </tr>
+        <tr th:each="workshop : ${workshops}">
+            <td th:text="${workshop.title}"></td>
+            <td th:text="${workshop.category}"></td>
+            <td th:text="${workshop.price} + ' MKD'"></td>
+            <td th:text="${workshop.capacity}"></td>
+            <td th:text="${workshop.instructor != null}
+                         ? ${workshop.instructor.name + ' ' + workshop.instructor.surname}
+                         : '-'"></td>
+            <td>
+                <a th:href="@{/workshops/workshop-form/{id}(id=${workshop.id})}">
+                    <button type="button">Edit</button>
+                </a>
+                <form class="inline-form" method="POST"
+                      th:action="@{/workshops/delete/{id}(id=${workshop.id})}">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+
+    <!-- the registration form from lab 1, unchanged in behaviour -->
+    <form action="/registration" method="POST">
+        <h2>Choose a workshop:</h2>
+        <div class="workshop-option" th:each="workshop : ${workshops}">
+            <input type="radio" name="workshopTitle" required
+                   th:value="${workshop.title}"
+                   th:disabled="${workshop.capacity == 0}">
+            <span th:text="'Instructor: ' + ${workshop.instructor.name} + ' ' + ${workshop.instructor.surname}
+                           + ', Title: ' + ${workshop.title}
+                           + ', Category: ' + ${workshop.category}
+                           + ', Price: ' + ${workshop.price}
+                           + ' MKD, Free seats: ' + ${workshop.capacity}"></span>
+        </div>
+
+        <h2>Enter your information:</h2>
+        <label>Your Name:</label>
+        <input type="text" name="participantName" required><br/>
+        <label>Your Email:</label>
+        <input type="email" name="participantEmail" required><br/>
+
+        <h2>Choose number of seats:</h2>
+        <input type="number" name="numSeats" min="1" required><br/>
+        <br/>
+        <input type="submit" value="Register">
+    </form>
+</main>
+</body>
+</html>

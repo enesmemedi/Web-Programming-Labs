@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Workshop Registration - Confirmation</title>
+    <style type="text/css">
+        body {
+            width: 800px;
+            margin: auto;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, td, th {
+            border: 1px solid #333;
+        }
+        th {
+            background-color: #2E86C1;
+            color: white;
+            padding: 12px;
+        }
+        td {
+            padding: 10px;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+<section>
+    <header>
+        <h1>Workshop Registration - Confirmation</h1>
+    </header>
+    <table>
+        <tr>
+            <th colspan="2">Your Registration Status</th>
+        </tr>
+        <tr>
+            <td><b>Participant Name</b></td>
+            <td th:text="${participantName}"></td>
+        </tr>
+        <tr>
+            <td><b>Participant Email</b></td>
+            <td th:text="${participantEmail}"><!-- Display participant email --></td>
+        </tr>
+        <tr>
+            <td><b>Client IP Address</b></td>
+            <td th:text="${ipAddress}"><!-- Display IP address --></td>
+        </tr>
+        <tr>
+            <td><b>Browser</b></td>
+            <td th:text="${userAgent}"><!-- Display the User-Agent header --></td>
+        </tr>
+        <tr>
+            <td><b>Workshop</b></td>
+            <td th:text="${workshopTitle}"><!-- Display workshop title --></td>
+        </tr>
+        <tr>
+            <td><b>Number of seats</b></td>
+            <td th:text="${numSeats}"><!-- Display number of seats --></td>
+        </tr>
+    </table>
+    <p><a href="/">Back to workshops</a></p>
+</section>
+</body>
+</html>
