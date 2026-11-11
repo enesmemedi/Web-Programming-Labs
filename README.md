@@ -1,51 +1,287 @@
-# Web Programming — Labs (FINKI)
+# Лабораториска вежба 2 — за групите со префикс А
 
-Spring Boot project for the **Веб програмирање** lab series, group **prefix A**.
+Во оваа вежба ќе треба да продолжите со работа во рамки на проектот од претходната
+лабораториска вежба. Функционалноста на сервлетите од претходната вежба ќе ја
+реализирате со Spring MVC контролери, а сервлетите ќе ги задржите на нови патеки.
 
-Each lab continues the previous lab's code rather than starting fresh, so the labs
-are kept as **commits on `main`, each tagged `labN`** — not as separate folders.
-The git history *is* the progression.
+## 1. Модели
 
-## Labs
+Во класата **Workshop** додадете уште едно својство:
 
-| Tag | Lab | What it adds |
-|-----|-----|--------------|
-| `lab2` | Lab 2 | Spring MVC `@Controller`s taking over from the servlets (servlets kept, moved to `/servlet/*`), `Instructor` model + repository + service, full workshop CRUD, shared `workshop-form.html` |
-
-> Lab 1 (servlets + Thymeleaf) has no tag — Lab 2 was built on top of it in place,
-> before this repo had its first commit, so its standalone state no longer exists.
-
-## Opening a specific lab
-
-```bash
-git checkout lab2     # the exact state submitted for Lab 2
-git checkout main     # back to the latest work
+```java
+private Long id;
 ```
 
-## Running
+кое е уникатно за секоја работилница. Притоа, `id` генерирајте за секоја работилница,
+како што е направено во рамки на аудиториската вежба.
 
-```bash
-./mvnw spring-boot:run
+Додадете класа **Instructor** во рамки на пакетот `mk.ukim.finki.wp.lab.model`
+(Lombok `@Data`, `@AllArgsConstructor`). Во истата ќе чувате:
+
+```java
+private Long id;
+private String name;
+private String surname;
+private String email;
+private String expertise;
 ```
 
-Then open <http://localhost:9090>. All data is in-memory (`bootstrap/DataHolder`)
-and is rebuilt on every start, so edits and registrations do not survive a restart.
+Во класата **Workshop** додадете врска до класата Instructor како посебно својство:
 
-Routes:
-
-| Path | What it is |
-|------|-----------|
-| `/` | redirects to `/workshops` |
-| `/workshops` | list + search |
-| `/workshops/workshop-form` | add form |
-| `/workshops/workshop-form/{id}` | edit form |
-| `/servlet/workshops`, `/servlet/registration` | the original Lab 1 servlets, still live |
-
-## Adding the next lab
-
-```bash
-git add -A
-git commit -m "Lab 3: <what it adds>"
-git tag lab3
-git push && git push --tags
+```java
+private Instructor instructor;
 ```
+
+Со новите својства се менува и конструкторот што го генерира `@AllArgsConstructor` —
+соодветно изменете ја иницијализацијата во `DataHolder`.
+
+## 2. Repository слој
+
+Во класата `DataHolder` додадете статична листа:
+
+```java
+public static List<Instructor> instructors = null;
+```
+
+и во методот `init()` иницијализирајте ја со 3 инструктори (како во кодот од вежби).
+Инструкторите иницијализирајте ги пред работилниците, а за секоја од работилниците
+поставете некој од инструкторите во атрибутот `instructor`.
+
+Дефинирајте интерфејс **InstructorRepository** во пакетот `mk.ukim.finki.wp.lab.repository`:
+
+```java
+public interface InstructorRepository {
+    List<Instructor> findAll();
+    Optional<Instructor> findById(Long id);
+}
+```
+
+Креирајте класа **InMemoryInstructorRepository** во пакетот
+`mk.ukim.finki.wp.lab.repository.impl`, анотирана со `@Repository`, која го
+имплементира интерфејсот (користете Java Streams):
+
+- `findAll()` – ја враќа листата од `DataHolder.instructors`
+- `findById(Long id)` – го враќа инструкторот со даденото `id`, или `Optional.empty()`
+  ако таков не постои
+
+## 3. Service слој
+
+Во рамки на пакетот `mk.ukim.finki.wp.lab.service` креирајте интерфејс
+**InstructorService** како и класа која го имплементира **InstructorServiceImpl**
+(во `impl` потпакетот, анотирана со `@Service`, зависноста се внесува преку
+конструктор). Нека во овој сервис се креира метод:
+
+```java
+List<Instructor> findAll();
+```
+
+кој го повикува соодветниот метод од InstructorRepository.
+
+## 4. Web слој — контролер и погледи
+
+Дефинирајте пакет `mk.ukim.finki.wp.lab.web.controller` и во него креирајте ја
+**WorkshopController** класата (анотирана со `@Controller`). Контролерот зависи од
+`WorkshopService` и `InstructorService` и ја презема функционалноста на
+`WorkshopListServlet`.
+
+### 4.1 Метод за листање и пребарување
+
+```java
+public String getWorkshopsPage(@RequestParam(required = false) String text,
+                               @RequestParam(required = false) Double maxPrice,
+                               @RequestParam(required = false) String errorMessage,
+                               Model model)
+```
+
+кој треба да го прикаже погледот на сите работилници. Нека одговара на mapping `/workshops`.
+
+- Ако е испратен барем еден од параметрите `text` и `maxPrice`, повикајте `search()`,
+  во спротивно `listAll()` (иста логика како во `WorkshopListServlet`; празните
+  параметри третирајте ги како `null`).
+- Ако постои `errorMessage`, додадете ја во моделот за да се прикаже на врвот од страната.
+
+Погледот на сите работилници нека биде `listWorkshops.html`, со приказ на името и
+презимето на инструкторот, оставајќи ја формата за пребарување и функционалноста за
+избирање на работилница и број на места.
+
+До секоја работилница додадете две копчиња:
+
+- едно за едитирање на работилницата;
+- друго за бришење на работилницата.
+
+Барањата кон `/` нека бидат пренасочени кон `/workshops` (`redirect:/workshops`).
+
+### 4.2 Додавање нова работилница
+
+```java
+public String saveWorkshop(@RequestParam String title,
+                           @RequestParam String category,
+                           @RequestParam Double price,
+                           @RequestParam Integer capacity,
+                           @RequestParam Long instructorId)
+```
+
+кој ќе овозможи додавање на нова работилница и ќе одговара на mapping `/workshops/add`.
+При успешно додавање, нека редиректира кон погледот со сите работилници. Ако сервисот
+фрли `IllegalArgumentException`, направете redirect кон `/workshops?errorMessage=<порака>`
+(енкодирајте ја пораката со `URLEncoder.encode(message, StandardCharsets.UTF_8)`,
+како во претходната вежба).
+
+### 4.3 Ажурирање работилница
+
+```java
+public String editWorkshop(@PathVariable Long workshopId,
+                           @RequestParam String title,
+                           @RequestParam String category,
+                           @RequestParam Double price,
+                           @RequestParam Integer capacity,
+                           @RequestParam Long instructorId)
+```
+
+кој ќе овозможи ажурирање на работилниците. Нека одговара на mapping
+`/workshops/edit/{workshopId}`, и при успешно ажурирање редиректирајте кон листата на
+работилници. Грешките обработете ги исто како во 4.2.
+
+### 4.4 Бришење работилница
+
+```java
+public String deleteWorkshop(@PathVariable Long id)
+```
+
+Нека одговара на mapping `/workshops/delete/{id}`, и при успешно бришење повторно нека
+ја прикажува листата на работилници (redirect).
+
+Внимавајте на анотациите — користете `@GetMapping` за форми/страници и `@PostMapping`
+за креирање, ажурирање и бришење.
+
+## 5. Поврзани слоеви
+
+Креирајте ги сите потребни методи во service и repository слоевите согласно методите
+во контролерите. Минимално:
+
+Во **WorkshopRepository** (и `InMemoryWorkshopRepository`):
+
+```java
+Optional<Workshop> findById(Long id);
+Workshop save(Workshop workshop);
+void deleteById(Long id);
+```
+
+- `save` – ако веќе постои работилница со истото `id`, ја заменува; во спротивно ја
+  додава. Ја враќа зачуваната работилница.
+
+Во **WorkshopService** (и `WorkshopServiceImpl`, кој сега зависи и од `InstructorRepository`):
+
+```java
+Optional<Workshop> findById(Long id);
+Workshop create(String title, String category, Double price, Integer capacity, Long instructorId);
+Workshop update(Long id, String title, String category, Double price, Integer capacity, Long instructorId);
+void deleteById(Long id);
+```
+
+Методите `create` и `update` треба да фрлат `IllegalArgumentException` ако:
+
+- `title` или `category` е `null` или празен;
+- `price` или `capacity` е `null` или негативен;
+- не постои инструктор со дадениот `instructorId`;
+- (само `update`) не постои работилница со дадениот `id`.
+
+Сè останува in-memory како во претходната вежба.
+
+## 6. Страници (views)
+
+### 6.1 `workshop-form.html`
+
+Креирајте страна за додавање/уредување на работилница. Формата треба да содржи полиња за:
+
+- `title` (наслов)
+- `category` (категорија)
+- `price` (цена, `min="0"`, `step="0.01"`)
+- `capacity` (број на места, `min="0"`)
+- `instructorId` (селект листа со сите инструктори — се прикажува име и презиме,
+  вредноста е `id`)
+
+Иста форма да се користи и за додавање и за уредување:
+
+- при уредување полињата се пополнети со моменталните вредности, тековниот инструктор е
+  селектиран, а формата се праќа на `/workshops/edit/{id}`;
+- при додавање полињата се празни, а формата се праќа на `/workshops/add`.
+
+### 6.2 `listWorkshops.html`
+
+- Прикажете ги сите работилници (наслов, категорија, цена, слободни места, инструктор —
+  име и презиме).
+- До секоја работилница додадете копче за уредување (води кон
+  `/workshops/workshop-form/{id}`) и копче за бришење (POST форма кон
+  `/workshops/delete/{id}`).
+- Додадете копче за додавање нова работилница (води кон `/workshops/workshop-form`).
+- Оставете ја постоечката форма за пребарување, но сменете ја нејзината акција во `/workshops`.
+- Оставете ја постоечката форма за регистрација (избор на работилница, име, e-mail и
+  број на места) и приказот на `errorMessage`.
+
+HTML не дозволува форма во форма — копчињата за уредување и бришење поставете ги надвор
+од формата за регистрација (на пр. во посебна табела над неа).
+
+## 7. Дополнителни рути за форми
+
+```java
+public String getEditWorkshopForm(@PathVariable Long id, Model model)
+```
+
+кој одговара на mapping `/workshops/workshop-form/{id}` и ја прикажува
+`workshop-form.html` страната. При уредување, прикажете ги моменталните податоци за
+работилницата и листата на сите инструктори. Ако `id` не постои — направете редирект
+кон `/workshops?errorMessage=WorkshopNotFound`.
+
+```java
+public String getAddWorkshopPage(Model model)
+```
+
+кој одговара на mapping `/workshops/workshop-form` и ја прикажува `workshop-form.html`
+страната (празна форма и листа на сите инструктори).
+
+## 8. Регистрации (RegistrationController)
+
+Функционалноста на сервлетот **RegistrationServlet** реализирајте ја во контролер
+**RegistrationController** (во пакетот `mk.ukim.finki.wp.lab.web.controller`), мапиран
+на `/registration` (POST), кој ќе овозможи:
+
+- креирање нова регистрација;
+- прикажување на страницата за потврда.
+
+Контролерот треба да:
+
+- ги прочита податоците од формата (избраната работилница, `participantName`,
+  `participantEmail` и `numSeats`) — името на радио копчињата во формата мора да
+  одговара на `@RequestParam` во контролерот;
+- ја земе IP адресата на клиентот (`HttpServletRequest.getRemoteAddr()`) и прелистувачот
+  (заглавието `User-Agent`, преку `@RequestHeader`);
+- креира регистрација преку `RegistrationService.register()`;
+- ако сервисот фрли `IllegalArgumentException`, направи redirect кон
+  `/workshops?errorMessage=<порака>` (енкодирана);
+- во спротивно, ја прикаже `registrationConfirmation.html` страната со деталите
+  (податоците се праќаат преку `Model`).
+
+Сервлетите не ги бришете — променете им ги само патеките за да нема конфликт со
+контролерите (кога сервлет и контролер имаат иста патека, барањето не стигнува до
+контролерот):
+
+- `WorkshopListServlet`: `/` → `/servlet/workshops`
+- `RegistrationServlet`: `/registration` → `/servlet/registration`
+
+Во `RegistrationServlet` соодветно сменете го и редиректот при грешка во
+`/servlet/workshops?errorMessage=<порака>`. Анотацијата `@ServletComponentScan` останува.
+
+## 9. Проверка
+
+При тестирање проверете:
+
+- пренасочување од `/` кон `/workshops` и прикажување на сите работилници;
+- пребарување по текст и максимална цена;
+- додавање, уредување (вклучително промена на инструктор) и бришење работилници;
+- редирект со порака `WorkshopNotFound` за непостоечко `id` во `/workshops/workshop-form/{id}`;
+- порака за грешка при невалидни податоци во формата за работилница;
+- функционалност на регистрацијата и потврдната страница (вклучително порака
+  `Not enough free seats`);
+- правилно прикажување на инструкторите во листата;
+- сервлетите и понатаму работат на `/servlet/workshops` и `/servlet/registration`.
